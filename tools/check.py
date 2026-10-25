@@ -20,11 +20,22 @@ moment those come back into play: the update can turn setupwraith back on for a 
 owns, and a fix that skipped the checks would take that TV off Wi-Fi with no way back in.
 
 Exit codes: 0 in sync (or fixed), 1 drift, an incomplete fix, or packages a safety check left on,
-2 the TV could not be read.
+2 the TV or the list could not be read, or the command line asked for something this script does not
+do. That last one matters: README.md tells an owner to run this from a weekly job and hear about it
+on exit 1, so a mistyped flag must not come back as drift.
 """
 import os
 import re
 import sys
+
+# The command line is judged before the list is read and before the TV is touched. `check.py --help`
+# used to be taken as a list named `--help` and died in a FileNotFoundError traceback - exit 1, the
+# code a weekly job reads as "the TV drifted" - and a flag typed where the launcher package goes
+# reached set-home-activity as if it were a package name.
+USAGE = ("usage: check.py <debloat list> [launcher package]        report the drift; exit 1 when there is any\n"
+         "       check.py --fix <debloat list> [launcher package]  re-disable what came back and put the\n"
+         "                                                        launcher back on Home\n"
+         "       check.py --help                                   this text\n")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recovery  # noqa: E402  (needs the tools/ directory on the path first)
@@ -259,16 +270,34 @@ def fix(dev, listed, back_on, home_drifted, preferred):
 
 def main():
     args = sys.argv[1:]
+    if any(a in ("-h", "--help") for a in args):
+        sys.stdout.write(USAGE)
+        return 0
+    # Only --fix is a flag; anything else starting with a dash is refused here, where it is a
+    # mistyped command, rather than passed on as a path (a traceback, exit 1) or as the launcher
+    # package (a set-home-activity for something that cannot own Home).
+    unknown = next((a for a in args if a.startswith("-") and a != "--fix"), None)
+    if unknown:
+        sys.stderr.write(f"check.py: no such flag: {unknown}\n{USAGE}")
+        return 2
     wanted = "--fix" in args
     args = [a for a in args if a != "--fix"]
     if not 1 <= len(args) <= 2:
-        sys.stderr.write("usage: check.py [--fix] <debloat list> [launcher package]\n")
+        sys.stderr.write(USAGE)
         return 2
     list_path = args[0]
     preferred = args[1] if len(args) == 2 else None
     # read_list validates every name before anything is sent to the TV: its entries end up in the
     # TV's shell, and a list edited by hand since then is not to be trusted.
-    listed = recovery.read_list(list_path)
+    try:
+        listed = recovery.read_list(list_path)
+    except OSError as e:
+        # A path typed wrong or a list that moved after a git pull is a command-line mistake, not a
+        # TV that drifted: exit 2, not the 1 a weekly job reads as drift.
+        sys.stderr.write(f"could not read {list_path} ({e.strerror or e}). Nothing was checked or changed: "
+                         f"pass the debloat list this TV was cleaned with, e.g. "
+                         f"examples/<your tv>/debloat.txt.\n")
+        return 2
     core = recovery.core_packages(listed)
     if core:
         # The same refusal as disable.sh: --fix would disable these again (#884).

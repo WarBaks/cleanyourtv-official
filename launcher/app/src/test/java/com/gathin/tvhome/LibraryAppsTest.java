@@ -9,6 +9,15 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class LibraryAppsTest {
+    @Test public void thePillHidesOnlyWhileTheTopBarButtonIsAWayIn() {
+        assertTrue(LibraryApps.showPill(true, false, true));
+        assertTrue(LibraryApps.showPill(true, true, true));
+        assertTrue(LibraryApps.showPill(true, false, false));
+        assertFalse(LibraryApps.showPill(true, true, false));
+        assertFalse(LibraryApps.showPill(false, true, true));
+        assertFalse(LibraryApps.showPill(false, false, true));
+    }
+
     @Test public void hidingKeepsTheNextAppOrThePreviousAppAtTheEnd() {
         assertEquals(1, LibraryApps.nextAfterRemoval(0, 5));
         assertEquals(3, LibraryApps.nextAfterRemoval(2, 5));

@@ -257,6 +257,10 @@
     <bool name="wifi_status_warnings">false</bool>
     <!-- The app library as a round button in the top bar, beside Settings (app_library must be on too). -->
     <bool name="library_button">false</bool>
+    <!-- The App library pill after the last Home row. false hides it while library_button is on, so the top-bar
+         button stays the way in, and Down from the last row stays put as with app_library off. Can also be set
+         with "show_library_pill": false in a theme's config.json. -->
+    <bool name="show_library_pill">true</bool>
     <!-- With icon_only_buttons: keep the network name on the Wi-Fi pill up to this width in dp, cut with an ellipsis.
          0 leaves the Wi-Fi pill as an icon. -->
     <integer name="wifi_label_width">0</integer>

@@ -9,6 +9,15 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class LibraryAppsTest {
+    @Test public void okOpensHomeAppsAndEveryAppWithTheSwitchButNeverInSelectionMode() {
+        assertTrue(LibraryApps.okOpens(false, false, true));
+        assertFalse(LibraryApps.okOpens(false, false, false));
+        assertTrue(LibraryApps.okOpens(false, true, false));
+        assertTrue(LibraryApps.okOpens(false, true, true));
+        assertFalse(LibraryApps.okOpens(true, true, false));
+        assertFalse(LibraryApps.okOpens(true, false, true));
+    }
+
     @Test public void hidingKeepsTheNextAppOrThePreviousAppAtTheEnd() {
         assertEquals(1, LibraryApps.nextAfterRemoval(0, 5));
         assertEquals(3, LibraryApps.nextAfterRemoval(2, 5));

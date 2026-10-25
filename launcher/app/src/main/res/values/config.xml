@@ -321,6 +321,10 @@
     <!-- Optional direct Home picker in the app library: OK toggles the checkmark, checked apps first.
          Off by default; a theme can set "app_library_selection": true (also needs app_library). -->
     <bool name="app_library_selection">false</bool>
+    <!-- OK opens every app in the library, not only the apps on Home: for a library that holds the apps a theme
+         keeps off Home with hidden_apps. Hold OK still offers Add to Home. app_library_selection wins when both are
+         on. Off by default; a theme can set "library_ok_opens": true (also needs app_library). -->
+    <bool name="library_ok_opens">false</bool>
 
     <!-- Apps pre-seeded into the App library's "added" set at startup (config.xml library_apps, or a theme's
          config.json). They show on Home as if the owner had added them in the App library UI, and stay

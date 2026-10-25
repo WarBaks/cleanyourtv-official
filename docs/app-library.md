@@ -13,6 +13,14 @@ than following the hidden app into the second group. Adding an app focuses it
 in the checked group. Hold-OK actions are omitted in this mode; it only controls
 Home shortcuts and never uninstalls apps.
 
+## Optional: OK opens every app
+
+Set `"library_ok_opens": true` along with `"app_library": true` when the library is where you open the
+apps a theme keeps off Home with `hidden_apps`. OK then opens every app, not only the ones on Home. Hold
+OK for Add to Home or Remove from Home, as before. Cards that are not on Home drop their "Add to Home"
+line (a new app keeps its green dot), and the hint reads "Press to open" for every app. It is off by
+default, and with `app_library_selection` also on, selection mode wins.
+
 ## Standard behavior
 
 Set `"app_library": true` in a theme’s `config.json`, or enable the `app_library`

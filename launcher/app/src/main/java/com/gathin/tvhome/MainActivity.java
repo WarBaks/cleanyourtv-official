@@ -195,6 +195,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
+    /** vpn_pill: the VPN shown as its own pill (btnVpn) instead of a badge in the network pill. Off with top_menu. */
+    private boolean vpnPill;
+    private TextView btnVpn;
+    /** The VpnBadge pill state btnVpn shows, so a refresh that changes nothing does not restyle it. */
+    private int vpnPillState = VpnBadge.PILL_HIDDEN;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
     // How far the grid has scrolled the glass. springY works without it, in grid content space, so a
@@ -487,6 +492,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
         vpnApp = cfg.vpnApp;
+        vpnPill = cfg.vpnPill && !cfg.topMenu;
+        btnVpn = findViewById(R.id.btnVpn);
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
 
@@ -682,6 +689,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
+        btnVpn.setOnClickListener(v -> openVpnPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
@@ -705,7 +713,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
         btnLibraryTop.setOnClickListener(v -> {
             onLibraryRequested();
-            libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
+            libraryReturnFocus = btnLibraryTop;   // closing it goes back to this button, not to the pill after the last row
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps);
@@ -768,12 +776,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
+        btnVpn.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -1561,13 +1570,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (appLibrary != null) appLibrary.close();
         if (openPopup != null) openPopup.dismiss();
         libraryFocusPending = false;
-        libraryFromTopBar = false;
+        libraryReturnFocus = null;
         appLibrary = new AppLibraryDialog(this, animations, reducedMotion, appLibrarySelection, adapter::containsPackage, () -> reloadApps(false), () -> {
             appLibrary = null;
             openPopup = null;
-            if (libraryFromTopBar) {
-                libraryFromTopBar = false;
-                btnLibraryTop.requestFocus();
+            View opener = libraryReturnFocus;
+            libraryReturnFocus = null;
+            // The VPN pill can hide while the library is open (its VPN dropped): then focus goes as from the grid.
+            if (opener != null && opener.getVisibility() == View.VISIBLE) {
+                opener.requestFocus();
                 return;
             }
             libraryFocusPending = true;
@@ -2290,7 +2301,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             button.setContentDescription(label);
             Intent target = launch;
             button.setOnClickListener(v -> open(new Intent(target)));
-            bar.addView(button, bar.indexOfChild(btnWifi));
+            // After the network pill and the VPN pill; the Hebrew bar runs the other way, so before both there.
+            bar.addView(button, bar.indexOfChild(getResources().getBoolean(R.bool.rtl_menu_bar) ? btnVpn : btnWifi));
             topAppButtons.add(button);
         }
     }
@@ -2567,7 +2579,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // With a VPN app configured, a VPN that is down matters too: show a red "VPN off" capsule then.
         boolean vpnDown = !vpn && online && !vpnApp.isEmpty();
-        if (vpn || vpnDown) {
+        if (vpnPill) updateVpnPill(vpn);
+        if ((vpn || vpnDown) && !vpnPill) {
             // Network name, then the green lock-and-VPN (or red "VPN off") capsule drawn in place of the word.
             String badge = getString(vpn ? R.string.vpn : R.string.vpn_off);
             VpnBadge span = new VpnBadge(vpn ? getDrawable(R.drawable.ic_lock) : null, density);
@@ -2632,8 +2645,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private ColorStateList wifiNoInternetTint, wifiOfflineTint;
     /** The app library button in the top bar (library_button). */
     private View btnLibraryTop;
-    /** The open library came from that button: closing it returns there instead of scrolling to the grid's end. */
-    private boolean libraryFromTopBar;
+    /** The top-bar pill the open library came from (that button, or the VPN pill): closing it returns there instead of scrolling to the grid's end. */
+    private View libraryReturnFocus;
 
     /** Turns a labelled top pill into the round TopButtonIcon shape: no text, the icon centred by even padding. */
     private void makeIconOnly(TextView pill) {
@@ -2697,11 +2710,58 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
-    /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
+    /**
+     * The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. With
+     * vpn_pill the VPN app has its own pill, so this one always opens Wi-Fi settings.
+     */
     private void openNetworkPill() {
-        Intent i = vpnApp.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
-        if (i == null && !vpnApp.isEmpty()) i = getPackageManager().getLaunchIntentForPackage(vpnApp);
+        Intent i = vpnPill ? null : vpnAppIntent();
         open(i != null ? i : systemIntent(Settings.ACTION_WIFI_SETTINGS));
+    }
+
+    /** vpn_app's launch intent, or null when none is set or it is not installed. */
+    private Intent vpnAppIntent() {
+        if (vpnApp.isEmpty()) return null;
+        Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
+        return i != null ? i : getPackageManager().getLaunchIntentForPackage(vpnApp);
+    }
+
+    /**
+     * vpn_pill: the VPN app, where it is switched on and off. Without one installed, the App library to pick from, or
+     * Android's VPN settings when the theme turned the library off.
+     */
+    private void openVpnPill() {
+        Intent i = vpnAppIntent();
+        if (i != null || !appLibraryEnabled) {
+            open(i != null ? i : systemIntent(Settings.ACTION_VPN_SETTINGS));
+            return;
+        }
+        onLibraryRequested();
+        libraryReturnFocus = btnVpn;
+    }
+
+    /** vpn_pill: the whole pill solid green with a lock while a VPN is up, solid red "VPN off" while it is not. */
+    private void updateVpnPill(boolean vpn) {
+        int state = VpnBadge.pillState(vpn, vpnAppIntent() != null);
+        if (state == VpnBadge.PILL_HIDDEN) {
+            if (btnVpn.getVisibility() == View.GONE) return;
+            boolean focused = btnVpn.hasFocus();
+            btnVpn.setVisibility(View.GONE);
+            if (focused) (btnWifi.getVisibility() == View.VISIBLE ? btnWifi : firstTopButton()).requestFocus();
+            return;
+        }
+        if (state != vpnPillState) {
+            vpnPillState = state;
+            boolean up = state == VpnBadge.PILL_UP;
+            // Dark ink on green, white on red, focused or not: the white focus ring is drawn by the background.
+            ColorStateList ink = ColorStateList.valueOf(up ? VpnBadge.INK : VpnBadge.INK_OFF);
+            btnVpn.setText(up ? R.string.vpn : R.string.vpn_off);
+            btnVpn.setTextColor(ink);
+            btnVpn.setBackground(VpnBadge.pillBackground(up, density));
+            btnVpn.setCompoundDrawablesRelativeWithIntrinsicBounds(up ? R.drawable.ic_lock : 0, 0, 0, 0);
+            btnVpn.setCompoundDrawableTintList(ink);
+        }
+        btnVpn.setVisibility(View.VISIBLE);
     }
 
 

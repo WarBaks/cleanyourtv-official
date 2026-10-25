@@ -318,7 +318,8 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   the first unlock, and only a direct-boot-aware activity can start then. Most firmwares have a
   `FallbackHome` that stands in until the unlock; some, like this CVTE board, do not, and then boot
   never completes. This repo's launcher is only partly direct-boot-aware: `HomeKeyService` declares
-  the flag, so Android binds it while the user is still locked, and `MainActivity`, the activity that
+  the flag, so Android binds it while the user is still locked, and `GuardRevival` declares it too
+  (nothing binds that listener unless the standby opt-in is turned on). `MainActivity`, the activity that
   answers HOME, does not declare it. The second command below therefore prints
   `PARTIALLY_DIRECT_BOOT_AWARE` for this launcher and cannot say whether Home exists before the
   unlock; on a set with no `FallbackHome`, the first command is the one that decides. Check both

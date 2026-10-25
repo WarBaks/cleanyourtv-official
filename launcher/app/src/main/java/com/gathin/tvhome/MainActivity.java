@@ -189,6 +189,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** config.xml show_taskbar, overridable by a theme. Off: the taskbar button is hidden. */
+    private boolean showTaskbar;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -473,6 +475,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
         showStats = cfg.showStats;
+        showTaskbar = cfg.showTaskbar;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
         lunar = cfg.lunarDate;
@@ -708,6 +711,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
+        View btnTaskbar = findViewById(R.id.btnTaskbar);
+        if (btnTaskbar != null) {
+            btnTaskbar.setVisibility(showTaskbar && !cfg.topMenu ? View.VISIBLE : View.GONE);
+            btnTaskbar.setOnClickListener(v -> showTaskbarPopup());
+        }
         addTopBarApps(cfg.topBarApps);
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
@@ -726,6 +734,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showInputsPill = false;
             btnInputs.setVisibility(View.GONE);
             btnWifi.setVisibility(View.GONE);
+            if (btnTaskbar != null) btnTaskbar.setVisibility(View.GONE);
             ((TextView) btnSettings).setText(R.string.settings);
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
             if (!iconOnlyButtons) makeIconOnly((TextView) btnSettings);
@@ -742,6 +751,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
+            if (btnTaskbar != null) makeIconOnly((TextView) btnTaskbar);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
         btnSettings.setOnLongClickListener(v -> {
@@ -3091,6 +3101,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dot.setVisibility(View.GONE);
         }
         row.setOnClickListener(v -> {
+            if (action == null) return;
             popup.dismiss();
             action.run();
         });
@@ -3098,6 +3109,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     // ---- launcher settings and module cards -------------------------------------------------------
+
+    /** taskbar button: shows live RAM, CPU, storage and app manager in a frosted glass popup. */
+    private void showTaskbarPopup() {
+        View anchor = findViewById(R.id.btnTaskbar);
+        if (anchor == null || anchor.getVisibility() != View.VISIBLE) anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (270 * density));
+
+        int cpu = cpuPercent();
+        long[] mem = memUsedOfTotalMb();
+        String storage = formatGb(getResources(), Environment.getDataDirectory().getFreeSpace());
+
+        String memStr = mem != null ? (mem[0] + " / " + mem[1] + " MB (" + (mem[1] - mem[0]) + " MB free)") : "–";
+        String cpuStr = cpu >= 0 ? (cpu + "%") : "–";
+
+        addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_memory), -1, null);
+        if (rows.getChildCount() > 0) {
+            TextView st = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
+            if (st != null) { st.setText(memStr); st.setVisibility(View.VISIBLE); }
+        }
+
+        addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_cpu), -1, null);
+        if (rows.getChildCount() > 0) {
+            TextView st = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
+            if (st != null) { st.setText(cpuStr); st.setVisibility(View.VISIBLE); }
+        }
+
+        if (!storage.isEmpty()) {
+            addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_storage), -1, null);
+            if (rows.getChildCount() > 0) {
+                TextView st = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
+                if (st != null) { st.setText(storage + " free"); st.setVisibility(View.VISIBLE); }
+            }
+        }
+
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.taskbar_open_settings), -1, () -> {
+            open(systemIntent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (270 * density), Math.min(panel.getMeasuredWidth(), (int) (380 * density))));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
 
     /** top_menu: the gear's dropdown, standing in for the Inputs, Wi-Fi and Settings pills. */
     private void showTopMenu() {
@@ -3113,6 +3169,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             TextView status = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
             status.setText(network);
             status.setVisibility(View.VISIBLE);
+        }
+        if (showTaskbar) {
+            addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_title), -1, this::showTaskbarPopup);
         }
         addInputRow(rows, popup, R.drawable.ic_swap_vert, getString(R.string.reorder), -1, this::toggleReorder);
         if (launcherSettingsButton) {
@@ -3218,6 +3277,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         row.findViewById(R.id.status).setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         row.setOnClickListener(v -> {
+            if (action == null) return;
             popup.dismiss();
             action.run();
         });

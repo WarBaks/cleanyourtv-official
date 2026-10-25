@@ -345,6 +345,14 @@
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
+                    android:id="@+id/btnTaskbar"
+                    style="@style/TopButton"
+                    android:text="@string/taskbar_title"
+                    android:drawableStart="@drawable/ic_taskbar"
+                    android:visibility="gone"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnLibraryTop"
                     style="@style/TopButtonIcon"
                     android:visibility="gone"

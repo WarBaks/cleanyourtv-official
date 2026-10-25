@@ -332,5 +332,7 @@ Notes for models that have no tested list yet live in [`docs/devices/`](../docs/
 
 - [Acer AR55AR2851UDFL 55"](../docs/devices/acer-ar55ar2851udfl.md), India, SCBC `R4` / Realtek `rtd2851m`, Android TV 14 `UKR1.260308` / `3272`: second unit near the AR55AR2851UDPRO example; 11 owner-approved packages disabled, Home and key functions checked after two warm reboots and one owner-reported full power-off; two days of testing, with package-state verification and longer follow-up pending, so no example list yet.
 
+- [Changhong 58D4P (China, ZLM97GiT)](../docs/devices/changhong-58d4p.md) (`ChangHong Android TV`, Mstar `m7332`, Android 9, `PPR2.180905.006.A1` / `V2.00203`, 911 MB RAM): Home handover that needs `com.changhong.system.launcher.v2` disabled, or the stock launcher takes Home back on the next reboot without asking, and a `set-home-activity` issued towards standby can be lost silently; the vendor's own userspace lmkd kills a background Home well above the kernel's low-memory floor; `boot_to_live_tv` works through `live_tv_action: android.intent.action.MAIN` on an input app that declares no leanback entry; power-off takes 10 s to over a minute below the framework with no stable cause, and the HDMI signal auto-wake that first looked like a firmware defect was the source device's CEC switched off. Owner observations only; no debloat list.
+
 To add your TV, see [CONTRIBUTING.md](../CONTRIBUTING.md). The quickest way to get a list is to
 run the prompt in [PROMPT.md](../PROMPT.md) and copy the packages your assistant disabled.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Options, set before building. See the README's Options table. -->
+<resources>
+    <!-- The teams whose match fills the big card, by the name ESPN uses ("India", "Pakistan",
+         "New Zealand"...), comma-separated. The first one wins when two play on the same day. -->
+    <string name="follow_teams">India</string>
+    <!-- Also follow the women's side of those teams ("India Women"). -->
+    <bool name="follow_women">false</bool>
+    <!-- Also follow the Indian Premier League. -->
+    <bool name="follow_ipl">true</bool>
+</resources>

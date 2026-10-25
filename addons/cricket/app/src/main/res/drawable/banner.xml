@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The TV banner: a red ball in front of three stumps and bails on a night pitch. Drawn for this add-on, no third-party art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#FF0D3B2A" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#FF14573D" android:pathData="M0,128h320v52h-320z" />
+    <path android:fillColor="#FFE9D9B0" android:pathData="M120,52h9v80h-9z M138,52h9v80h-9z M156,52h9v80h-9z" />
+    <path android:fillColor="#FFE9D9B0" android:pathData="M118,45h28v6h-28z M138,45h28v6h-28z" />
+    <path android:fillColor="#FFD7263D" android:pathData="M205,104m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3" android:fillColor="#00000000"
+        android:pathData="M186,81 C198,95 198,113 186,127 M224,81 C212,95 212,113 224,127" />
+</vector>

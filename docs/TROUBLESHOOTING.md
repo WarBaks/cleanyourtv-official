@@ -700,6 +700,16 @@ Android 11 (SDK 30), build RS8185.3885N:
 Debloat: `tools/disable.sh examples/amazon-fire-tv-aftdec012e/debloat.txt` disables telemetry, ACR, shopping and
 tutorial packages. Undo with `tools/restore.sh examples/amazon-fire-tv-aftdec012e/debloat.txt com.amazon.tv.launcher`.
 
+**Home and the Alexa button do nothing, every other button works**, seen on a Fire TV Stick 4K 1st gen
+(`AFTMM`, `mantis`, Fire OS 6.7.1.1, build `NS6711`). It was there before any debloat and survived a factory
+reset, so check it before blaming a list. The remote is fine: `getevent -lt` shows `KEY_HOMEPAGE` and
+`KEY_SEARCH` arriving from "Amazon Fire TV Remote", and `logcat` shows Fire OS receiving them
+(`mic_button_released`, `handleLongPressOnHome`), yet Home stays put and Alexa never listens. The cause was
+`settings get secure user_setup_complete` answering `0` (with `global device_provisioned` at `1` and the
+Amazon account registered): the first-run setup had been left unfinished, and Android holds back Home and the
+assistant until it is. `settings put secure user_setup_complete 1` brought both buttons back; `0` undoes it.
+A factory reset clears it again, so finish the setup wizard to the end afterwards.
+
 ## Remapping the remote's app buttons without a key helper
 
 A process of your own can take the buttons the helpers exist for without binding an accessibility service,

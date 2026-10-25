@@ -1,0 +1,6 @@
+{
+  "tv": "Skyworth 7T861_A23 (MediaTek MT9638), China market",
+  "os": "Coocaa OS / Android 10",
+  "brand": "Skyworth",
+  "notes": "Coocaa OS telemetry, performance monitors, factory test timer, guide, video/ad platform, stores; **do not disable `com.skyworth.officehomepage`**: disabling it hangs on boot logo (recovery via factory reset); launcher works via coocaa-home-shim and must be built with `-PlauncherApplicationId=com.coocaa.tvhome`"
+}

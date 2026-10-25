@@ -1,4 +1,5 @@
-# Philips TPM191E (TP Vision, device PH9M_EA_5599, MediaTek mt5887), Europe
+# Philips TPM191E (TP Vision, device PH9M_EA_5599, MediaTek mt5887), Europe; includes a unit whose
+# Android device name reports 65OLED804/12 (see README.md; the list was not applied to that unit)
 # Android TV 12 (API 31), firmware STT2.230526.001, security patch 2025-11-01.
 # Fingerprint: Philips/PH9M_EA_5599/PH9M_EA_5599:12/STT2.230526.001/4215:user/release-keys
 # About 2 GB RAM, armeabi-v7a. Vendor packages use the org.droidtv prefix.

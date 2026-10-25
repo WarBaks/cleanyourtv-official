@@ -202,6 +202,9 @@
     <bool name="shamsi_date">false</bool>
     <!-- Lunisolar (Vietnamese / Chinese) date under the date; config.json lunar_date, lunar_utc_offset (7 or 8, default by locale). -->
     <bool name="lunar_date">false</bool>
+    <!-- The date (with the Shamsi and lunar lines) on its own line under the clock instead of beside it, for a top bar
+         whose pills leave the date too little room. Can also be set with "date_below_clock" in a theme. -->
+    <bool name="date_below_clock">false</bool>
 
     <!-- A name after the greeting: "Mr. Trịnh" shows GOOD MORNING, MR. TRỊNH. Empty: the greeting alone. -->
     <string name="greeting_name" translatable="false"></string>

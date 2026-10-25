@@ -454,15 +454,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             findViewById(R.id.clockDivider).setBackgroundColor(Color.WHITE);
         }
         if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
-            // Center Hebrew greetings over the numeric time, independent of a visible AM/PM label.
-            findViewById(R.id.clock).addOnLayoutChangeListener((v, l, t, right, bottom, ol, ot, or, ob) -> {
+            // Center Hebrew greetings over the numeric time, independent of a visible AM/PM label. The clock's row
+            // is watched too: date_below_clock can move the whole row right under a wider date.
+            View clock = findViewById(R.id.clock);
+            View clockRow = (View) clock.getParent();
+            View.OnLayoutChangeListener centerGreeting = (v, l, t, right, bottom, ol, ot, or, ob) -> {
                 ViewGroup.LayoutParams params = greeting.getLayoutParams();
-                if (params.width != right - l) {
-                    params.width = right - l;
+                if (params.width != clock.getWidth()) {
+                    params.width = clock.getWidth();
                     greeting.setLayoutParams(params);
                 }
-                greeting.setTranslationX(l);
-            });
+                greeting.setTranslationX(clockRow.getLeft() + clock.getLeft());
+            };
+            clock.addOnLayoutChangeListener(centerGreeting);
+            clockRow.addOnLayoutChangeListener(centerGreeting);
         }
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
@@ -479,6 +484,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lunarOffset = Lunar.offsetFor(cfg.lunarUtcOffset, Locale.getDefault());
         if (lunar) lunarDate.setVisibility(View.VISIBLE);
         greetingName = cfg.greetingName;
+        if (cfg.dateBelowClock) moveDateBelowClock();
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
@@ -2245,6 +2251,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         libraryFocusPending = false;
         hideGlass();
         hideHero();
+    }
+
+    /**
+     * date_below_clock: the date column moves to its own line under the clock, in the vertical LinearLayout that holds
+     * the clock's row, and the line between them goes. In Hebrew (rtl_menu_bar) the date and the clock's row sit right.
+     */
+    private void moveDateBelowClock() {
+        View column = (View) findViewById(R.id.date).getParent();
+        View clockRow = (View) findViewById(R.id.clock).getParent();
+        LinearLayout clockColumn = (LinearLayout) clockRow.getParent();
+        ((ViewGroup) column.getParent()).removeView(column);
+        findViewById(R.id.clockDivider).setVisibility(View.GONE);
+        // Its own width, not the column's: in Hebrew the column is only as wide as the clock.
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = Math.round(4 * density);
+        if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
+            // Date and clock flush right; the greeting stays left and follows the clock by translation.
+            lp.gravity = Gravity.RIGHT;
+            ((LinearLayout.LayoutParams) clockRow.getLayoutParams()).gravity = Gravity.RIGHT;
+        }
+        clockColumn.addView(column, clockColumn.indexOfChild(clockRow) + 1, lp);
     }
 
     /** The first top-bar button after Inputs that is shown, in bar order (top_bar_apps, the network pill, ...); Settings is always there. */

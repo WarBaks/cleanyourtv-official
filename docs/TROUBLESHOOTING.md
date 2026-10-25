@@ -783,6 +783,38 @@ printed; the empty list also unbinds TalkBack. Bisect, keycodes and limits:
 
 A [Sony KD-55X9000H PA-firmware follow-up](devices/sony-kd-55x9000h.md#later-remote-key-follow-up-24-october-2026) on Android 12 reproduced the same filter/repeat conflict with a personal fork. Its simultaneous kernel/callback capture saw held Volume in hardware but neither Volume direction in the helper. A separate saved-layout experiment retained Apps and native Volume without key filtering; it requires that fork's companion and Library entry, reserves an application-launch category, and has not been tested across restart/sleep/reconnect. It is not a stock upstream option.
 
+## The soundbar on ARC/eARC falls asleep and the TV does not wake it
+
+A soundbar on the TV's ARC or eARC port can go to standby on its own after a stretch of silence while
+the TV stays on, and starting an app or a video does not bring it back until someone wakes it by hand.
+Seen on a Sony BRAVIA 4K VH2 (KD-55X80J, Google TV 12, `STT2.230505.001.S136`) with a Moto 160SB on
+HDMI 3 (eARC), with the TV's own settings already right (Speakers: Audio system, Audio system prioritisation on, BRAVIA Sync on).
+
+The TV reports the state over ADB. While the soundbar sleeps, both values are `false`:
+
+```sh
+tools/tv.py 'dumpsys hdmi_control | grep -E "mSystemAudioActivated|mArcEstablished"'
+```
+
+Asking for System Audio Mode over HDMI-CEC wakes it, the same request the TV's Speakers → Audio system
+setting sends; the soundbar reconnects about 5 to 8 seconds later:
+
+```sh
+tools/tv.py 'cmd hdmi_control setsam on'
+```
+
+To have that happen without a computer, an app needs the shell: on Android 12 an app cannot send CEC
+itself, and writing the TV's speaker setting needs the maker's own permissions. These were tried on the
+VH2 and do nothing from an app: Android's system-audio setting, volume nudges, and Sony's audio
+service. What does work is an app that keeps Network debugging on and connects to the TV's own ADB on
+`127.0.0.1:5555` with its own key, which the TV asks to allow once, and runs only that one command when
+an app opens or media starts while no `TYPE_HDMI_ARC`/`TYPE_HDMI_EARC` output is listed. The
+[Sony BRAVIA Launcher](https://github.com/udeshvirk/sony-bravia-launcher) in [`SHOWCASE.md`](../SHOWCASE.md)
+does this (`SoundbarWaker.java`). It is a trade-off: Network debugging stays on and the port is open on
+the home network, which the PROMPT's last step closes on purpose. On Sony, an app can instead open the
+Home Theatre Control panel (`com.sony.dtv.HomeTheatreControl`) for about half a second, which also
+wakes the soundbar and needs no ADB, at the cost of the panel flashing on screen.
+
 ## One app refuses to play while the rest of the TV is online
 
 An ad-blocking Private DNS is a common addition and the resolver answering is not proof that playback

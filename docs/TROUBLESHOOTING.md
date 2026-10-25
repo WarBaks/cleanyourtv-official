@@ -74,10 +74,15 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   off again afterwards if you use public Wi-Fi.
 - **Windows PowerShell 5.1 adds a byte-order mark** to text piped into a program, which turned the
   first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
-- **"Allow USB debugging?" comes back** although `adb devices` already works: `tv.py` used its own
-  key next to the one platform-tools had registered. It now reuses `~/.android/adbkey` when that
-  exists. Every attempt with an unaccepted key queues one more prompt on the TV, so dismiss them all
-  (Back) before testing with key presses.
+- **"Allow USB debugging?" comes back**, or the TV answers `unauthorized` although `adb devices` already
+  works: `tv.py` keeps a key of its own in `tools/adbkey/`, and it only falls back to the stock
+  `~/.android/adbkey` ([#105](https://github.com/Gathin23/cleanyourtv/issues/105)) while that folder does
+  not exist. So a set that was first reached with this client is asked for a key platform-tools never
+  registered, and revoking the authorisations or toggling USB debugging brings the prompt back instead of
+  a connection. Delete the folder and the next run takes the stock key: `rm -rf tools/adbkey`
+  (`rmdir /s /q tools\adbkey` in PowerShell), then `tools/tv.py --probe` and accept that one prompt.
+  Every attempt with an unaccepted key queues one more prompt on the TV, so dismiss them all (Back)
+  before testing with key presses ([#1526](https://github.com/Gathin23/cleanyourtv/issues/1526)).
 - **Git Bash rewrites paths** like `/data/local/tmp` into Windows paths. The scripts set
   `MSYS_NO_PATHCONV=1` for you. Set `JAVA_HOME` and `ANDROID_HOME` before building there.
 

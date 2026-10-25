@@ -43,6 +43,22 @@
                 android:value="Keeps a user-chosen screen dimming layer over other apps" />
         </service>
 
+        <!-- Optional: when the owner switches it on in Accessibility, the dimming layer is drawn as an accessibility
+             overlay, which the TV's Settings can't hide and which sits above the volume bar. It draws only:
+             no events, no window content, no keys, no gestures. -->
+        <service
+            android:name=".SystemScreensService"
+            android:exported="false"
+            android:label="@string/system_screens_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/system_screens" />
+        </service>
+
         <receiver
             android:name=".BootReceiver"
             android:exported="true">

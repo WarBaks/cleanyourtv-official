@@ -3,4 +3,6 @@
     <string name="app_name">Brightness</string>
     <string name="channel_name">Screen dimming</string>
     <string name="notification_text">Dimming the screen. Open Brightness to change or switch off.</string>
+    <string name="system_screens_name">Brightness: system screens</string>
+    <string name="system_screens_description">Lets Brightness dim the TV\'s own screens too: Settings, the volume bar and other system panels, which hide or cover an ordinary dimming layer. It only draws the dimming layer. It reads nothing on screen, sees no keys and takes no actions.</string>
 </resources>

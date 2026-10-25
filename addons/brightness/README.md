@@ -51,6 +51,14 @@ black at the missing brightness with the amber folded in for warmth. It never ta
 keeps controlling whatever is on screen. A foreground service holds the window and switches night
 mode at the scheduled times, and it stops itself when there is nothing to draw and no schedule to follow.
 
+**Dim system screens too** (optional). The TV's own Settings screens ask Android to hide every app overlay while
+they are open (`HIDE_NON_SYSTEM_OVERLAY_WINDOWS`), so the screen jumped back to full brightness as soon as Settings
+opened, and the volume bar is drawn above app overlays. The row opens the TV's Accessibility settings, where
+**Brightness: system screens** can be turned on. That service only draws the same layer as an accessibility
+overlay (`TYPE_ACCESSIBILITY_OVERLAY`), which Android doesn't hide for Settings and keeps above app windows. It
+reads no screen content and receives no events. While it is on, the app uses its layer instead of its own; turn it
+off and the ordinary layer comes back.
+
 ## Permissions
 
 | Permission | Why |
@@ -58,6 +66,7 @@ mode at the scheduled times, and it stops itself when there is nothing to draw a
 | Display over other apps (`SYSTEM_ALERT_WINDOW`) | To draw the dimming layer over other apps. Granted by `install.sh`, since many TVs hide this setting. Without it the app says so and draws nothing. |
 | Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`) | One service holds the layer and follows the schedule. It runs only while dimming is on and there is a layer to draw or a schedule to follow. |
 | Start at boot (`RECEIVE_BOOT_COMPLETED`) | To put the layer and the schedule back after a reboot or an update, if dimming was on. |
+| Accessibility service (optional, off until you turn it on) | Only for **Dim system screens too**: draws the layer where Settings can't hide it. It can't read the screen (`canRetrieveWindowContent="false"`) and listens to no events. Over ADB: `settings put secure enabled_accessibility_services io.github.maxhayim.brightness/.SystemScreensService` (this replaces the list; append if other services are on). |
 
 On Realtek TVs, the system's slice permission for the TV's picture settings, asked once on the TV (see "The TV's
 own picture"). It lets the app read and change the picture menu's settings and nothing else.
@@ -90,9 +99,13 @@ with your own key if you hand them out; the launcher pins its Show answer to the
 - **The TV picture option uses the TV's settings slices, which aren't public API.** A firmware update could rename
   them; then the rows still show but the TV no longer follows, and the TV's own menu works as always.
 - **Some things are drawn above it.** Android keeps the on-screen keyboard, the volume bar, toasts and the
-  system's own panels above app overlays, so they show at full brightness.
-- **Some screens hide it.** Since Android 12, permission prompts and the app installer can hide overlays while
-  they are open.
+  system's own panels above app overlays, so they show at full brightness. **Dim system screens too** puts the
+  layer above those that are ordinary app or system windows; on the test TV it stays over Settings, and the
+  volume bar is not yet checked.
+- **Some screens hide it.** The TV's Settings and, since Android 12, permission prompts and the app installer hide
+  app overlays while they are open. **Dim system screens too** keeps the layer over them.
+- **Force-stopping the app turns the accessibility service off** (Android removes it from the enabled list).
+  Updating the app keeps it on.
 - **Menus drawn by the TV itself** are not Android windows on some sets (picture menus on several TCL and Sony
   models), so they show at full brightness.
 - **Video planes vary.** On most TVs video, HDMI inputs and the tuner sit under Android's graphics and are
@@ -117,6 +130,13 @@ the slice permission and moving the TV's own backlight to 1 and back to 0 as the
 picture (backlight 100, contrast 50, brightness 50) put back by itself at 07:00 after a night at backlight 0,
 the card prompt, the card first in the grid and opening the app (on a home app that implements the module-card
 spec; not yet on this repo's launcher), and the layer back by itself after the app was updated. Memory: about 22 MB with the layer up.
+
+**Dim system screens too**, on the same TV with the add-on updated in place: with Settings open, the
+ordinary layer was hidden (`dumpsys window`: `isVisible=false` while Settings set `mForceHideNonSystemOverlayWindow`)
+and the screen went back to full brightness; with **Brightness: system screens** on, the accessibility layer
+stayed visible over Settings and the screen stayed dim. The row reads On and Off as the service is turned on and
+off. Also fixed: the values on the main screen could be blank the first time it opened. Not yet checked: the volume
+bar.
 
 The JVM tests cover the levels, the colour arithmetic, the schedule (past midnight, edges, empty windows), the
 1 % floor, the fine steps and the clamping of stored values.

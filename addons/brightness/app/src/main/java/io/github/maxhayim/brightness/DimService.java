@@ -29,12 +29,16 @@ import java.util.concurrent.Executors;
  * keeps controlling what is on screen. Runs only while there is a layer to hold or a schedule to follow,
  * and stops itself otherwise. It redraws whenever the settings change and at each start and end of the night.
  * With the TV picture option on, it also sets the TV's own picture for the night and puts the day's back after.
+ * While the owner has {@link SystemScreensService} on, that service draws the layer instead, over system screens too.
  */
 public class DimService extends Service {
     private static final String CHANNEL = "dimming";
     private static final int NOTIFICATION_ID = 1;
     /** Checked at least this often while a schedule runs, so a clock change or a TV standby can't leave it stale. */
     private static final long MAX_WAIT_MS = 5 * 60_000L;
+
+    /** The running service, or null; main thread only. */
+    private static DimService running;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     /** The TV picture's binder calls, one at a time and off the main thread. */
@@ -74,9 +78,15 @@ public class DimService extends Service {
         return Settings.canDrawOverlays(c);
     }
 
+    /** Draws again now, when the system screens service comes or goes. Main thread; harmless when not running. */
+    static void redraw() {
+        if (running != null) running.apply();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        running = this;
         wm = getSystemService(WindowManager.class);
         tv = new TvPicture(this);
         NotificationManager nm = getSystemService(NotificationManager.class);
@@ -113,6 +123,7 @@ public class DimService extends Service {
         Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener);
         unregisterReceiver(clockReceiver);
         removeLayer();
+        if (running == this) running = null;
         tvWork.shutdown();
         super.onDestroy();
     }
@@ -128,8 +139,16 @@ public class DimService extends Service {
         Dimming.Settings s = Prefs.load(this);
         int minute = minuteNow();
         Dimming.Level level = Dimming.level(s, minute);
-        if (level.visible() && canDraw(this)) showLayer(Dimming.color(level));
-        else removeLayer();
+        if (level.visible() && SystemScreensService.on()) {
+            // One layer at a time: the system screens one, with the ordinary one taken down.
+            removeOwnLayer();
+            if (!SystemScreensService.show(Dimming.color(level)) && canDraw(this)) showLayer(Dimming.color(level));
+        } else if (level.visible() && canDraw(this)) {
+            SystemScreensService.hide();
+            showLayer(Dimming.color(level));
+        } else {
+            removeLayer();
+        }
         boolean stop = !Dimming.needsService(s, minute);
         boolean tvNight = Dimming.tvNightNow(s, minute);
         if (tvNight || Prefs.tvAtNight(this)) {
@@ -194,7 +213,13 @@ public class DimService extends Service {
         }
     }
 
+    /** Both layers down. */
     private void removeLayer() {
+        SystemScreensService.hide();
+        removeOwnLayer();
+    }
+
+    private void removeOwnLayer() {
         if (layer == null) return;
         try {
             wm.removeView(layer);

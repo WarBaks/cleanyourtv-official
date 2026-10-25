@@ -22,7 +22,7 @@ public class MainActivity extends Activity {
     private Dimming.Settings s;
     private LinearLayout rows;
     private TextView status;
-    private Row permissionRow, onRow, brightnessRow, nightRow, nightBrightnessRow, warmthRow, startRow, endRow;
+    private Row permissionRow, onRow, brightnessRow, nightRow, nightBrightnessRow, warmthRow, startRow, endRow, systemRow;
     private TvPicture tv;
     private boolean tvAvailable;
     /** The TV's "allow" prompt while this app may not change the picture yet; null once allowed. */
@@ -81,7 +81,11 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     boolean changed = (ask == null) != (tvAsk == null);
                     tvAsk = ask;
-                    if (changed && !isFinishing()) build();
+                    if (changed && !isFinishing()) {
+                        // New rows start empty: fill them, or the values stay blank until a key is pressed.
+                        build();
+                        refresh();
+                    }
                 });
             }).start();
         }
@@ -134,6 +138,8 @@ public class MainActivity extends Activity {
             s.nightEnd += d * Dimming.TIME_STEP;
             changed();
         }));
+        systemRow = add(new Row(this, "Dim system screens too", "The TV's Settings and volume bar stay bright otherwise."
+                + " OK opens Accessibility: switch on Brightness: system screens.", false, this::openAccessibility, null));
         if (tvAvailable) buildTvRows();
         (permissionRow != null ? permissionRow : onRow).requestFocus();
     }
@@ -230,6 +236,7 @@ public class MainActivity extends Activity {
         boolean scheduled = s.night == Dimming.Night.SCHEDULED;
         startRow.setAlpha(scheduled ? 1f : 0.5f);
         endRow.setAlpha(scheduled ? 1f : 0.5f);
+        systemRow.setValue(SystemScreensService.on() ? "On" : "Off");
 
         if (tvAvailable && tvRow != null) {
             tvRow.setValue(s.tvPicture ? "On" : "Off");
@@ -265,6 +272,16 @@ public class MainActivity extends Activity {
             // Many TVs hide this setting; the ADB shell can still grant it.
             permissionRow.setDetail("This TV has no screen for it. From a computer: adb shell appops set "
                     + getPackageName() + " SYSTEM_ALERT_WINDOW allow");
+        }
+    }
+
+    private void openAccessibility() {
+        try {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } catch (ActivityNotFoundException | SecurityException e) {
+            // Some TVs hide Accessibility; the ADB shell can add the service, keeping the ones already on.
+            systemRow.setDetail("This TV has no Accessibility screen. From a computer, see the README: it adds "
+                    + getPackageName() + "/.SystemScreensService to enabled_accessibility_services.");
         }
     }
 
